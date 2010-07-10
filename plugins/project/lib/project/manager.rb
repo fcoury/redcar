@@ -22,6 +22,7 @@ module Redcar
       # this will restore open files unless other files or dirs were passed
       # as command line parameters
       def self.start(args)
+        puts "Manager.start #{args.inspect}"
         unless handle_startup_arguments(args)
           unless Redcar.environment == :test
             restore_last_session
@@ -74,7 +75,7 @@ module Redcar
       # @param [String] path  the path of the file being edited
       # @return [EditTab, nil] the EditTab that is editing it, or nil
       def self.find_open_file_tab(path)
-        path = File.expand_path(path)
+        path = File.expand_path(path.path)
         all_tabs = Redcar.app.windows.map {|win| win.notebooks}.flatten.map {|nb| nb.tabs }.flatten
         all_tabs.find do |t| 
           t.is_a?(Redcar::EditTab) and 
@@ -90,14 +91,14 @@ module Redcar
       # @param [Window] win  the Window to open the File in
       def self.open_file_in_window(path, win)
         tab = win.new_tab(Redcar::EditTab)
-        mirror = FileMirror.new(path)
+        mirror = FileMirror.new(path.path)
         tab.edit_view.document.mirror = mirror
         tab.edit_view.reset_undo
         tab.focus
       end
       
       def self.find_projects_containing_path(path)
-        open_projects.select {|project| project.contains_path?(path) }
+        open_projects.select {|project| project.contains_path?(path.path) }
       end
       
       def self.open_file(path)
@@ -157,21 +158,26 @@ module Redcar
       # handles files and/or dirs passed as command line arguments
       def self.handle_startup_arguments(args)
         found_path_args = false
-        args.each do |arg|
-          if File.directory?(arg)
-            found_path_args = true
-            DirectoryOpenCommand.new(arg).run
-          elsif File.file?(arg)
-            found_path_args = true
-            open_file(arg)
+        unless args.include?("--remote")
+          args.each do |arg|
+            if File.directory?(arg)
+              found_path_args = true
+              DirectoryOpenCommand.new(arg).run
+            elsif File.file?(arg)
+              found_path_args = true
+              open_file(arg)
+            end
           end
-        end
-        args.each do |arg|
-          if arg =~ /--untitled-file=(.*)/
-            path = $1
-            found_path_args = true
-            open_untitled_path(path)
+          args.each do |arg|
+            if arg =~ /--untitled-file=(.*)/
+              path = $1
+              found_path_args = true
+              open_untitled_path(path)
+            end
           end
+        else
+          found_path_args = true
+          DirectoryOpenCommand.new(args.first).run
         end
         found_path_args
       end

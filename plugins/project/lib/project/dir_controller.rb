@@ -10,6 +10,20 @@ module Redcar
         end
       end
       
+      def selected(tree, node)
+        # puts "Selected: #{tree.inspect}"
+        puts "Node: #{node.inspect}"
+        if node
+          puts "Before: #{node.children}"
+          node.calculate_children
+          puts "Refreshing after: #{node.children}"
+          # tree.refresh
+          true
+        end
+        # node.calculate_children
+        # tree.refresh
+      end
+      
       class DragController
         include Redcar::Tree::Controller::DragController
         

@@ -20,6 +20,7 @@ else
   Redcar.spin_up
   Redcar.environment = :user
   Redcar.load
+  puts "Start with #{ARGV.inspect}"
   Redcar::Top.start(ARGV)
   Redcar.pump
 end

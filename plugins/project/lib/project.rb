@@ -1,4 +1,12 @@
+Dir.glob(File.dirname(__FILE__) + "/../vendor/*").each do |path|
+  gem_name = File.basename(path.gsub(/-[\d\.]+$/, ''))
+  $LOAD_PATH << path + "/lib/"
+end
+
 require 'drb/drb'
+
+require "project/adapters/file_system"
+require "project/adapters/remote"
 
 require "project/commands"
 require "project/dir_mirror"
@@ -21,6 +29,7 @@ module Redcar
     attr_reader :window, :tree, :path
 
     def initialize(path)
+      puts "Project for #{path}"
       @path   = File.expand_path(path)
       dir_mirror = Project::DirMirror.new(path)
       if dir_mirror.exists?
@@ -44,6 +53,7 @@ module Redcar
         current_project.close
       end
       window.treebook.add_tree(@tree)
+      # puts "Path: "
       window.title = File.basename(@tree.tree_mirror.path)
       Manager.open_project_sensitivity.recompute
       RecentDirectories.store_path(path)
