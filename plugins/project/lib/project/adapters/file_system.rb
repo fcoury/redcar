@@ -1,6 +1,24 @@
 module Redcar
   class Project
     module Adapters
+      class LocalFile
+        def self.stat(file)
+          File.stat(file)
+        end
+
+        def self.exists?(file)
+          File.exists?(file)
+        end
+
+        def self.load(file)
+          File.open(file, 'rb') do |f|; f.read; end
+        end
+
+        def self.save(file, contents)
+          File.open(file, "wb") {|f| f.print contents }
+        end
+      end
+      
       class FileSystem
         attr_reader :path
         

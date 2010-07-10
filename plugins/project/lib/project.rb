@@ -8,6 +8,7 @@ require 'drb/drb'
 require "project/adapters/file_system"
 require "project/adapters/remote"
 
+require "project/transfer_bar"
 require "project/commands"
 require "project/dir_mirror"
 require "project/dir_controller"

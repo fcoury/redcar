@@ -15,6 +15,7 @@ module Redcar
       # @param [String] a path to a file
       def initialize(path)
         @path = path
+        @file_adapter_class = Adapters::RemoteFile
       end
       
       # Load the contents of the file from disk
@@ -23,7 +24,7 @@ module Redcar
       def read
         return "" unless exists?
         contents = load_contents
-        @timestamp = File.stat(@path).mtime
+        @timestamp = @file_adapter_class.stat(@path).mtime
         contents
       end
       
@@ -31,7 +32,7 @@ module Redcar
       #
       # @return [Boolean]
       def exists?
-        File.exists?(@path)
+        @file_adapter_class.exists?(@path)
       end
       
       # Has the file changed since the last time it was read or commited?
@@ -40,7 +41,7 @@ module Redcar
       # @return [Boolean]
       def changed?
         begin
-          !@timestamp or @timestamp < File.stat(@path).mtime
+          !@timestamp or @timestamp < @file_adapter_class.stat(@path).mtime
         rescue Errno::ENOENT
           false
         end
@@ -72,12 +73,25 @@ module Redcar
       
       private
       
+      def with_message(action, target)
+        yield
+      end
+      
       def load_contents
-        File.open(@path, 'rb') do |f|; f.read; end
+        puts ":: Load: #{@path}"
+        ret = nil
+        with_message "downloading", @path do
+          ret = @file_adapter_class.load(@path)
+        end
+        ret
       end
       
       def save_contents(contents)
-        File.open(@path, "wb") {|f| f.print contents }
+        puts ":: Save: #{@path}"
+
+        with_message "uploading", @path do
+          @file_adapter_class.save(@path, contents)
+        end
       end
     end
   end

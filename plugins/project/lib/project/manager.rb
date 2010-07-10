@@ -98,7 +98,8 @@ module Redcar
       end
       
       def self.find_projects_containing_path(path)
-        open_projects.select {|project| project.contains_path?(path.path) }
+        path = path.path if path.is_a?(Redcar::Project::Adapters::RemoteNode)
+        open_projects.select {|project| project.contains_path?(path) }
       end
       
       def self.open_file(path)

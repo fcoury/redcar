@@ -1,30 +1,93 @@
 require 'net/ssh'
 require 'net/sftp'
-require 'pathname'
+require 'fileutils'
 
 module Redcar
   class Project
     module Adapters
+      class RemoteConnection
+        def self.host
+          '12.200.147.200'
+        end
+        
+        def self.user
+          'git'
+        end
+        
+        def self.password
+          'teste'
+        end
+        
+        def self.connection
+          @@connection ||= begin
+            print "Connecting to #{host}... "
+            ret = Net::SSH.start(host, user, :password => password)
+            puts "done!"
+            ret
+          end
+        end
+      end
+      
+      class RemoteFile
+        def self.connection
+          RemoteConnection.connection
+        end
+        
+        def self.sftp
+          self.connection.sftp
+        end
+        
+        def self.stat(file)
+          sftp.stat!(file)
+        end
+        
+        def self.exists?(file)
+          (@exist||={})[file] ||= connection.exec!("test -e #{file} && echo y") =~ /^y/
+        end
+        
+        def self.paths(file)
+          base_temp = '/tmp'
+          file_name = File.basename(file)
+          path = File.dirname(file)
+          
+          local_path = "#{base_temp}/#{RemoteConnection.host}#{path}"
+          local_file = "#{local_path}/#{file_name}"
+          
+          [local_path, local_file]
+        end
+        
+        def self.load(file)
+          local_path, local_file = paths(file)
+
+          print "Downloading: #{file} as: #{local_file}... "
+          FileUtils.mkdir_p local_path
+          sftp.download! file, local_file
+          puts "done"
+          File.open(local_file, 'rb') do |f|; f.read; end
+        end
+        
+        def self.save(file, contents)
+          local_path, local_file = paths(file)
+          
+          ret = File.open(local_file, "wb") {|f| f.print contents }
+          print "Uploading: #{local_file} as #{file}... "
+          sftp.upload! local_file, file
+          puts "done"
+          ret
+        end
+      end
+      
       class RemoteFactory
         attr_reader :path
 
         def initialize(path)
           @path = path
           @basename = File.basename(path)
-          @host = 'fcoury.info'
-          @user = 'fcoury'
-          @pass = 'dreamtempra13'
-          
           puts "RemoteFactory.new #{@path} #{@basename}"
         end
         
         def connection
-          @@connection ||= begin
-            print "Connecting to #{@host}... "
-            ret = Net::SSH.start(@host, @user, :password => @pass)
-            puts "done!"
-            ret
-          end
+          RemoteConnection.connection
         end
         
         def basename
